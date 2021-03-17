@@ -3,6 +3,8 @@ defmodule Nixa do
   Documentation for `Nixa`.
   """
 
+  import Nx.Defn
+
   @doc """
   Hello world.
 
@@ -15,4 +17,5 @@ defmodule Nixa do
   def hello do
     :world
   end
+
 end

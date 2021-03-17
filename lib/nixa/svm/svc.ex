@@ -5,6 +5,8 @@ defmodule Nixa.SVM.SVC do
 #  import Nixa.Shared
 #  import Nixa.Losses
 
+#  @default_defn_compiler {EXLA, keep_on_device: true}
+
   @enforce_keys [:w, :lr]
   defstruct [:w, :lr]
 
@@ -17,16 +19,20 @@ defmodule Nixa.SVM.SVC do
 
   def fit(model, inputs, targets, opts \\ []) do
     epochs = Keyword.get(opts, :epochs) || 1
+
     {time, model} = :timer.tc(__MODULE__, :train, [model, inputs, targets, epochs])
     IO.puts("Total training time: #{time / 1_000_000}s")
     model
   end
 
   def train(model, inputs, targets, epochs) do
+    inputs = inputs |> Enum.map(&Nx.squeeze/1)
+    targets = targets |> Enum.map(&Nx.squeeze/1)
+
     {model, _, _, _} = for epoch <- 1..epochs, reduce: {model, inputs, targets, epochs} do
       {model, inputs, targets, epochs} ->
-        #        {train_epoch(model, inputs, targets, epochs, epoch), inputs, targets, epochs}
-        {time, model} = :timer.tc(__MODULE__, :train_epoch, [model, inputs, targets, epochs])
+        model = train_epoch(model, inputs, targets, epochs)
+#        {time, model} = :timer.tc(__MODULE__, :train_epoch, [model, inputs, targets, epochs])
 #        IO.puts("Epoch #{epoch} time: #{time / 1_000_000}s")
         {model, inputs, targets, epochs}
     end
@@ -48,9 +54,9 @@ defmodule Nixa.SVM.SVC do
   defnp update_w(w, lr, x, y, epochs) do
     val1 = Nx.dot(x, w)
     if Nx.less(y * val1, 1.0) do
-      w + lr * ((y * x) - (2.0 * (1.0 / epochs) * w))
+      w + lr * ((y * x) - (2.0 * w / epochs))
     else
-      w + lr * (-2.0 * (1.0 / epochs) * w)
+      w - lr * (2.0 * w / epochs)
     end
   end
 
