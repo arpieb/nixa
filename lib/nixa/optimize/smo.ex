@@ -14,9 +14,7 @@ defmodule Nixa.Optimize.SMO do
     %__MODULE__{c: c, tol: tol, kernel: kernel, kernel_opts: kernel_opts, alphas: nil, b: 0.0, sv_x: nil, sv_y: nil}
   end
 
-  def fit(model, inputs, targets, opts \\ []) do
-    inputs = Nx.tensor(inputs)
-    targets = Nx.tensor(targets)
+  def fit(model = %__MODULE__{}, inputs = %Nx.Tensor{}, targets = %Nx.Tensor{}, opts \\ []) do
     num_inputs = Nixa.Shared.axis_size(inputs, 0)
     max_iters = Keyword.get(opts, :max_iters) || 1
     model = %{model | alphas: Nx.broadcast(0.0, {num_inputs})}
@@ -25,13 +23,12 @@ defmodule Nixa.Optimize.SMO do
     train(model, inputs, targets, 0, true, max_iters)
   end
 
-  def predict(%{kernel: kernel, alphas: alphas, b: b, sv: {sv_x, sv_y}}, inputs) do
+  def predict(%{kernel: kernel, alphas: alphas, b: b, sv_x: sv_x, sv_y: sv_y} = %__MODULE__{}, inputs = %Nx.Tensor{}) do
     inputs
-    |> Nx.tensor()
     |> Nx.to_batched_list(1)
     |> Enum.map(&Nx.squeeze/1)
-    |> Enum.map(fn x -> compute_k_vals(kernel, sv_x, x) |> predict_one(alphas, b, sv_y) end)
-    |> Nx.tensor()
+    |> Enum.map(fn x -> compute_k_vals(kernel, sv_x, x) |> predict_one(alphas, b, sv_y) |> Nx.new_axis(0) end)
+    |> Nx.concatenate()
   end
 
   ##
@@ -117,9 +114,9 @@ defmodule Nixa.Optimize.SMO do
   end
 
   defp take_step(model, i1, i2, _inputs, _targets) when i1 == i2, do: {false, model}
-  defp take_step(%{kernel: kernel, c: _c, tol: _tol, alphas: alphas, b: b, sv_x: sv_x, sv_y: sv_y} = model, i1, i2, inputs, targets) do
-    l = compute_l(model, i1, i2, targets)
-    h = compute_h(model, i1, i2, targets)
+  defp take_step(%{kernel: kernel, c: c, tol: _tol, alphas: alphas, b: b, sv_x: sv_x, sv_y: sv_y} = model, i1, i2, inputs, targets) do
+    l = compute_l(c, alphas, i1, i2, targets)
+    h = compute_h(c, alphas, i1, i2, targets)
     compute_updates(model, i1, i2, inputs, targets, l, h)
   end
 
@@ -184,24 +181,24 @@ defmodule Nixa.Optimize.SMO do
     end
   end
 
-  defp compute_l(%{c: c, alphas: alphas}, i1, i2, targets) do
+  defnp compute_l(c, alphas, i1 \\ 0, i2 \\ 0, targets) do
     a1 = alphas[i1]
     a2 = alphas[i2]
     y1 = targets[i1]
     y2 = targets[i2]
-    if y1 != y2 do
+    if Nx.not_equal(y1, y2) do
       Nx.max(0.0, Nx.subtract(a2, a1))
     else
       Nx.max(0.0, Nx.add(a2, a1) |> Nx.subtract(c))
     end
   end
 
-  defp compute_h(%{c: c, alphas: alphas}, i1, i2, targets) do
+  defnp compute_h(c, alphas, i1 \\ 0, i2 \\ 0, targets) do
     a1 = alphas[i1]
     a2 = alphas[i2]
     y1 = targets[i1]
     y2 = targets[i2]
-    if y1 != y2 do
+    if Nx.not_equal(y1, y2) do
       Nx.min(c, Nx.add(c, a2) |> Nx.subtract(a1))
     else
       Nx.min(c, Nx.add(a2, a1))
