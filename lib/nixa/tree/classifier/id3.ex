@@ -1,9 +1,9 @@
-defmodule Nixa.Tree.ID3 do
+defmodule Nixa.Tree.Classifier.ID3 do
   @moduledoc """
   Implementation of ID3 decision tree algorithm
   """
 
-  import Nixa.Stats
+  import Nixa.Tree.Shared
 
   defmodule Node do
     import Kernel, except: [to_string: 1]
@@ -58,22 +58,17 @@ defmodule Nixa.Tree.ID3 do
 
   end
 
-  def fit(inputs, targets, opts \\ []) do
+  def fit(inputs, targets, opts \\ []) when is_list(inputs) and is_list(targets) do
     num_attrs = inputs |> Enum.fetch!(0) |> Nx.size()
     build_tree({inputs, targets}, MapSet.new(0..(num_attrs - 1)), opts)
   end
 
-  def predict(model, inputs) do
+  def predict(%Node{} = model, inputs) when is_list(inputs) do
     inputs
     |> Enum.map(fn i -> traverse_tree(model, i) end)
   end
 
   ### Internal functions
-
-  defp traverse_tree(nil, _input) do
-    IO.puts("traverse_tree : node is nil")
-    nil
-  end
 
   defp traverse_tree(node, input) do
     cond do
@@ -103,31 +98,27 @@ defmodule Nixa.Tree.ID3 do
       t = Nx.concatenate(targets)
       %Node{target: t[0]}
     else
-      expand_tree(inputs, targets, attrs, h, opts)
+      # Find split attribute
+      split_arg = attrs
+        |> Enum.map(fn a -> calc_info_gain(inputs, targets, a, h) |> Nx.to_scalar() end)
+        |> Nx.tensor()
+        |> Nx.argmax()
+        |> Nx.to_scalar()
+      split_a = Enum.fetch!(attrs, split_arg)
+
+      rem_attrs = MapSet.delete(attrs, split_a)
+
+      split_vals = get_split_vals(inputs, split_a)
+      children = split_vals
+        |> Enum.map(fn val -> {Nx.to_scalar(val[0]), create_child(inputs, targets, split_a, val, rem_attrs, opts)} end)
+        |> Map.new()
+
+      %Node{
+        attr: split_a,
+        children: children,
+        target: get_argmax_target(targets)
+      }
     end
-  end
-
-  defp expand_tree(inputs, targets, attrs, h, opts) do
-    # Find split attribute
-    split_arg = attrs
-      |> Enum.map(fn a -> calc_info_gain(inputs, targets, a, h) |> Nx.to_scalar() end)
-      |> Nx.tensor()
-      |> Nx.argmax()
-      |> Nx.to_scalar()
-    split_a = Enum.fetch!(attrs, split_arg)
-
-    rem_attrs = MapSet.delete(attrs, split_a)
-
-    split_vals = get_split_vals(inputs, split_a)
-    children = split_vals
-      |> Enum.map(fn val -> {Nx.to_scalar(val[0]), create_child(inputs, targets, split_a, val, rem_attrs, opts)} end)#{Nx.to_scalar(val[0]), build_tree(filter_inputs_targets(inputs, targets, split_a, val), rem_attrs, opts)} end)
-      |> Map.new()
-
-    %Node{
-      attr: split_a,
-      children: children,
-      target: get_max_target(targets)
-    }
   end
 
   defp create_child(inputs, targets, split_a, split_val, rem_attrs, opts) do
@@ -135,66 +126,14 @@ defmodule Nixa.Tree.ID3 do
     cond do
       Enum.empty?(v_inputs) or Enum.empty?(v_targets) ->
         %Node{
-          target: get_max_target(targets)
+          target: get_argmax_target(targets)
         }
       MapSet.size(rem_attrs) == 0 ->
         %Node{
-          target: get_max_target(v_targets)
+          target: get_argmax_target(v_targets)
         }
       true -> build_tree({v_inputs, v_targets}, rem_attrs, opts)
     end
-  end
-
-  defp get_split_vals(inputs, split_a) do
-    inputs
-      |> Enum.map(fn t -> t[[0..-1, split_a]] end)
-      |> MapSet.new()
-      |> MapSet.to_list()
-  end
-
-  defp get_max_target(targets) do
-    target_idx = targets |> Nx.concatenate() |> frequencies() |> Nx.argmax() |> Nx.to_scalar()
-    Enum.fetch!(targets, target_idx)[0]
-  end
-
-  defp filter_inputs_targets(inputs, targets, split_a, split_val) do
-    inputs
-      |> Enum.zip(targets)
-      |> Enum.filter(fn {i, _t} -> i[0][split_a] == split_val[0] end)
-      |> Enum.unzip()
-  end
-
-  defp calc_info_gain(inputs, targets, split_a, h) do
-    # TODO
-
-    get_split_vals(inputs, split_a)
-    |> Enum.map(fn split_val -> calc_attr_entropy(inputs, targets, split_a, split_val) end)
-    |> Enum.reduce(Nx.tensor(0.0), fn ha, acc -> Nx.add(ha, acc) end)
-    |> Nx.negate()
-    |> Nx.add(h)
-
-    # :random.uniform()
-  end
-
-  defp calc_attr_entropy(inputs, targets, split_a, split_val) do
-    {_v_inputs, v_targets} = filter_inputs_targets(inputs, targets, split_a, split_val)
-    calc_targets_entropy(v_targets) |> Nx.multiply(Enum.count(v_targets)) |> Nx.divide(Enum.count(targets))
-  end
-
-  defp calc_targets_entropy(targets) do
-    targets
-    |> Nx.concatenate()
-    |> frequencies()
-    |> prob_dist()
-    |> entropy()
-  end
-
-  defp frequencies(%Nx.Tensor{} = t) do
-    classes = t |> Nx.to_flat_list() |> MapSet.new()
-    classes
-    |> MapSet.to_list()
-    |> Nx.tensor()
-    |> Nx.map(fn c -> Nx.equal(t, c) |> Nx.sum() end)
   end
 
 end
