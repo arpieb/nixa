@@ -1,6 +1,6 @@
 defmodule Nixa.Tree.Classifier.ID3 do
   @moduledoc """
-  Implementation of ID3 decision tree algorithm
+  Implementation of ID3 classifier decision tree algorithm
   """
 
   import Nixa.Tree.Shared
@@ -100,8 +100,8 @@ defmodule Nixa.Tree.Classifier.ID3 do
     else
       # Find split attribute
       split_arg = attrs
-        |> Enum.map(fn a -> calc_info_gain(inputs, targets, a, h) |> Nx.to_scalar() end)
-        |> Nx.tensor()
+        |> Enum.map(fn a -> calc_info_gain(inputs, targets, a, h) |> Nx.new_axis(0) end)
+        |> Nx.concatenate()
         |> Nx.argmax()
         |> Nx.to_scalar()
       split_a = Enum.fetch!(attrs, split_arg)
