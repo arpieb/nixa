@@ -1,4 +1,4 @@
-defmodule Nixa.Tree.Classifier.ID3 do
+defmodule Nixa.Tree.Classifier.CART do
   @moduledoc """
   Implementation of ID3 classifier decision tree algorithm
   """
@@ -92,18 +92,18 @@ defmodule Nixa.Tree.Classifier.ID3 do
   end
 
   defp build_tree({inputs, targets}, attrs, opts) do
-    h = calc_targets_entropy(targets)
-    if Nx.to_scalar(h) == 0.0 do
+    g = calc_targets_gini_impurity(targets)
+    if Nx.to_scalar(g) == 0.0 do
       # Base case where there is only one target value
       t = Nx.concatenate(targets)
       %Node{target: t[0]}
     else
       # Find split attribute
       split_arg = attrs
-        |> Enum.map(fn a -> Task.async(fn -> calc_info_gain(inputs, targets, a, h) |> Nx.new_axis(0) end) end)
+        |> Enum.map(fn a -> Task.async(fn -> calc_gini_impurity(inputs, targets, a) |> Nx.new_axis(0) end) end)
         |> Task.await_many(:infinity)
         |> Nx.concatenate()
-        |> Nx.argmax()
+        |> Nx.argmin()
         |> Nx.to_scalar()
       split_a = Enum.fetch!(attrs, split_arg)
 

@@ -32,6 +32,14 @@ defmodule Nixa.Tree.Shared do
     |> entropy()
   end
 
+  def calc_targets_gini_impurity(targets) do
+    targets
+    |> Nx.concatenate()
+    |> frequencies()
+    |> prob_dist()
+    |> gini_impurity()
+  end
+
   def frequencies(%Nx.Tensor{} = t) do
     t
     |> Nx.to_flat_list()
@@ -49,9 +57,20 @@ defmodule Nixa.Tree.Shared do
     |> Nx.add(h)
   end
 
+  def calc_gini_impurity(inputs, targets, split_a) do
+    get_split_vals(inputs, split_a)
+    |> Enum.map(fn split_val -> calc_attr_gini_impurity(inputs, targets, split_a, split_val) end)
+    |> Enum.reduce(Nx.tensor(0.0), fn ga, acc -> Nx.add(ga, acc) end)
+  end
+
   def calc_attr_entropy(inputs, targets, split_a, split_val) do
     {_v_inputs, v_targets} = filter_inputs_targets(inputs, targets, split_a, split_val)
     calc_targets_entropy(v_targets) |> Nx.multiply(Enum.count(v_targets)) |> Nx.divide(Enum.count(targets))
+  end
+
+  def calc_attr_gini_impurity(inputs, targets, split_a, split_val) do
+    {_v_inputs, v_targets} = filter_inputs_targets(inputs, targets, split_a, split_val)
+    calc_targets_gini_impurity(v_targets) |> Nx.multiply(Enum.count(v_targets)) |> Nx.divide(Enum.count(targets))
   end
 
 end

@@ -13,6 +13,17 @@ defmodule NixaTest.Tree do
     assert num_correct == Enum.count(y)
   end
 
+  test "Classifier.CART" do
+    # Test using well-documented toy dataset for decision trees, "PlayTennis"
+    {x, y} = get_play_tennis_data()
+    model = Nixa.Tree.Classifier.CART.fit(x, y)
+    yhat = Nixa.Tree.Classifier.CART.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
+    ytrue = y |> Nx.concatenate() |> Nx.squeeze()
+
+    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
+    assert num_correct == Enum.count(y)
+  end
+
   def get_play_tennis_data() do
     {inputs, targets} = [
       { [:sunny, :hot, :high, :weak], [:no] },
