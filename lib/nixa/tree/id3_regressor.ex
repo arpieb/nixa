@@ -4,6 +4,7 @@ defmodule Nixa.Tree.ID3Regressor do
   """
 
   import Nixa.Tree.Shared
+  import Nixa.Shared
 
   defmodule WrappedModel do
     defstruct [

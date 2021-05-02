@@ -80,6 +80,38 @@ defmodule Nixa.Shared do
   end
 
   @doc """
+  Get the most common class from targets
+  """
+  def get_argmax_target(targets) do
+    t_targets = targets |> Nx.concatenate()
+    argmax = t_targets |> frequencies() |> Nx.argmax() |> Nx.to_scalar()
+    t_targets
+    |> Nx.to_flat_list()
+    |> MapSet.new()
+    |> MapSet.to_list()
+    |> Enum.fetch!(argmax)
+  end
+
+  @doc """
+  Get the mean value of all targets
+  """
+  def get_mean_target(targets) do
+    targets |> Nx.concatenate() |> Nx.mean() |> Nx.new_axis(0)
+  end
+
+  @doc """
+  Calculate the frequencies of values in a tensor
+  """
+  def frequencies(%Nx.Tensor{} = t) do
+    t
+    |> Nx.to_flat_list()
+    |> MapSet.new()
+    |> MapSet.to_list()
+    |> Nx.tensor()
+    |> Nx.map(fn c -> Nx.equal(t, c) |> Nx.sum() end)
+  end
+
+  @doc """
   Provide Nx.tensor/2 functionality that is type-aware and can be blindly used on Nx.Tensor and scalars
   """
   def safe_to_tensor(%Nx.Tensor{} = t, _opts), do: t
@@ -88,7 +120,7 @@ defmodule Nixa.Shared do
   def safe_to_tensor(t), do: Nx.tensor(t)
 
   @doc """
-  Provide Nx.to_scalar/1 fucntionality that is type-aware and can be blindly used on Nx.Tensor and scalars
+  Provide Nx.to_scalar/1 functionality that is type-aware and can be blindly used on Nx.Tensor and scalars
   """
   def safe_to_scalar(%Nx.Tensor{} = t), do: Nx.to_scalar(t)
   def safe_to_scalar(t), do: t

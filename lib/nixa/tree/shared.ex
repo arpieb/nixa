@@ -4,21 +4,13 @@ defmodule Nixa.Tree.Shared do
   """
 
   import Nixa.Stats
+  import Nixa.Shared
 
   def get_split_vals(inputs, split_a) do
     inputs
       |> Enum.map(fn t -> t[[0..-1, split_a]] end)
       |> MapSet.new()
       |> MapSet.to_list()
-  end
-
-  def get_argmax_target(targets) do
-    target_idx = targets |> Nx.concatenate() |> frequencies() |> Nx.argmax() |> Nx.to_scalar()
-    Enum.fetch!(targets, target_idx)[0]
-  end
-
-  def get_mean_target(targets) do
-    targets |> Nx.concatenate() |> Nx.mean() |> Nx.new_axis(0)
   end
 
   def filter_inputs_targets(inputs, targets, split_a, split_val) do
@@ -42,15 +34,6 @@ defmodule Nixa.Tree.Shared do
     |> frequencies()
     |> prob_dist()
     |> gini_impurity()
-  end
-
-  def frequencies(%Nx.Tensor{} = t) do
-    t
-    |> Nx.to_flat_list()
-    |> MapSet.new()
-    |> MapSet.to_list()
-    |> Nx.tensor()
-    |> Nx.map(fn c -> Nx.equal(t, c) |> Nx.sum() end)
   end
 
   def calc_info_gain(inputs, targets, split_a, h) do

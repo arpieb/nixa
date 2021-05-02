@@ -4,6 +4,7 @@ defmodule Nixa.Tree.CARTClassifier do
   """
 
   import Nixa.Tree.Shared
+  import Nixa.Shared
 
   @doc """
   Train a model using the provided inputs and targets
