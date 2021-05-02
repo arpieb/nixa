@@ -3,16 +3,6 @@ defmodule Nixa do
   Documentation for `Nixa`.
   """
 
-  @doc """
-  Hello world.
+  import Nx.Defn
 
-  ## Examples
-
-      iex> Nixa.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end
