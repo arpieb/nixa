@@ -1,70 +1,46 @@
-defmodule Nixa.Tree.Classifier.ID3 do
+defmodule Nixa.Tree.ID3Regressor do
   @moduledoc """
-  Implementation of ID3 classifier decision tree algorithm
+  Implementation of ID3 regressor decision tree algorithm
   """
 
   import Nixa.Tree.Shared
 
-  defmodule Node do
-    import Kernel, except: [to_string: 1]
-
+  defmodule WrappedModel do
     defstruct [
-      attr: nil,
-      children: [],
-      target: nil
+      root: nil,
+      binning_strategy: [],
+      binning_borders: []
     ]
-
-    defimpl Inspect do
-      def inspect(node, _opts) do
-        Kernel.to_string(node)
-      end
-    end
-
-    defimpl String.Chars do
-      def to_string(node), do: node_to_string(node)
-
-      def node_to_string(node, split_val \\ nil, level \\ 0) do
-        prefix = List.duplicate(" ", level) |> Enum.join()
-        out = prefix <> "node"
-
-        out = out <> cond do
-          split_val != nil -> ", split_val: #{split_val}"
-          true -> ""
-        end
-
-        out = out <> cond do
-          node.attr != nil -> ", split_attr: #{node.attr}"
-          true -> ""
-        end
-
-        out = out <> cond do
-          node.target != nil ->
-            target = node.target[0] |> Nx.to_scalar()
-            ", default_target: #{target}"
-          true -> ""
-        end
-
-        out = out <> "\n"
-
-        out <> cond do
-          node.children != nil ->
-            node.children
-            |> Enum.reduce("", fn {attr_val, node}, acc -> acc <> node_to_string(node, attr_val, level + 2) end)
-          true -> ""
-        end
-      end
-
-    end
-
   end
 
+  @doc """
+  Train a model using the provided inputs and targets
+  """
   def fit(inputs, targets, opts \\ []) when is_list(inputs) and is_list(targets) do
+    binning_strategy = {:uniform, 10} #Keyword.get(opts, :binning_strategy, {:uniform, 10})
+    {binning_strategy, binning_borders} = calc_binning(inputs, binning_strategy)
+    xform_inputs = inputs
+    |> Enum.map(fn inst -> Nixa.Discretizers.transform_instance(inst, binning_borders) end)
+
     num_attrs = inputs |> Enum.fetch!(0) |> Nx.size()
-    build_tree({inputs, targets}, MapSet.new(0..(num_attrs - 1)), opts)
+    root = build_tree({xform_inputs, targets}, MapSet.new(0..(num_attrs - 1)), opts)
+
+    %WrappedModel{
+      root: root,
+      binning_strategy: binning_strategy,
+      binning_borders: binning_borders
+    }
   end
 
-  def predict(%Node{} = model, inputs) when is_list(inputs) do
+  @doc """
+  Predict a value using a trained model
+  """
+  def predict(%WrappedModel{} = wrapped_model, inputs) when is_list(inputs) do
+    model = wrapped_model.root
+    binning_borders = wrapped_model.binning_borders
+
     inputs
+    |> Enum.map(fn inst -> Nixa.Discretizers.transform_instance(inst, binning_borders) end)
     |> Enum.map(fn i -> traverse_tree(model, i) end)
   end
 
@@ -79,11 +55,7 @@ defmodule Nixa.Tree.Classifier.ID3 do
           true ->
             attr_val = input[0][node.attr] |> Nx.to_scalar()
             child = Map.get(node.children, attr_val)
-            cond do
-              child == nil ->
-                node.target
-              true -> traverse_tree(child, input)
-            end
+            if child == nil, do: node.target, else: traverse_tree(child, input)
         end
       node.target != nil -> node.target
       true ->
@@ -96,7 +68,7 @@ defmodule Nixa.Tree.Classifier.ID3 do
     if Nx.to_scalar(h) == 0.0 do
       # Base case where there is only one target value
       t = Nx.concatenate(targets)
-      %Node{target: t[0]}
+      %Nixa.Tree.Node{target: t[0]}
     else
       # Find split attribute
       split_arg = attrs
@@ -115,10 +87,10 @@ defmodule Nixa.Tree.Classifier.ID3 do
         |> Task.await_many(:infinity)
         |> Map.new()
 
-      %Node{
+      %Nixa.Tree.Node{
         attr: split_a,
         children: children,
-        target: get_argmax_target(targets)
+        target: get_mean_target(targets)
       }
     end
   end
@@ -127,12 +99,12 @@ defmodule Nixa.Tree.Classifier.ID3 do
     {v_inputs, v_targets} = filter_inputs_targets(inputs, targets, split_a, split_val)
     cond do
       Enum.empty?(v_inputs) or Enum.empty?(v_targets) ->
-        %Node{
-          target: get_argmax_target(targets)
+        %Nixa.Tree.Node{
+          target: get_mean_target(targets)
         }
       MapSet.size(rem_attrs) == 0 ->
-        %Node{
-          target: get_argmax_target(v_targets)
+        %Nixa.Tree.Node{
+          target: get_mean_target(v_targets)
         }
       true -> build_tree({v_inputs, v_targets}, rem_attrs, opts)
     end

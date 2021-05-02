@@ -2,29 +2,45 @@ defmodule NixaTest.Tree do
   use ExUnit.Case
   doctest Nixa
 
-  test "Classifier.ID3" do
+  test "ID3Classifier" do
     # Test using well-documented toy dataset for decision trees, "PlayTennis"
     {x, y} = get_play_tennis_data()
-    model = Nixa.Tree.Classifier.ID3.fit(x, y)
-    yhat = Nixa.Tree.Classifier.ID3.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
+    model = Nixa.Tree.ID3Classifier.fit(x, y)
+    yhat = Nixa.Tree.ID3Classifier.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
     num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
     assert num_correct == Enum.count(y)
   end
 
-  test "Classifier.CART" do
+  test "CARTClassifier" do
     # Test using well-documented toy dataset for decision trees, "PlayTennis"
     {x, y} = get_play_tennis_data()
-    model = Nixa.Tree.Classifier.CART.fit(x, y)
-    yhat = Nixa.Tree.Classifier.CART.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
+    model = Nixa.Tree.CARTClassifier.fit(x, y)
+    yhat = Nixa.Tree.CARTClassifier.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
     num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
     assert num_correct == Enum.count(y)
   end
 
-  def get_play_tennis_data() do
+  test "ID3Regressor" do
+    inputs = Nx.iota({10, 2}) |> Nx.to_batched_list(1)
+    targets = Nx.iota({10, 1}) |> Nx.to_batched_list(1)
+    model = Nixa.Tree.ID3Regressor.fit(inputs, targets)
+    yhat = Nixa.Tree.ID3Regressor.predict(model, inputs) |> Nx.concatenate() |> Nx.to_flat_list()
+    assert yhat == [0.5, 0.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+  end
+
+  test "CARTRegressor" do
+    inputs = Nx.iota({10, 2}) |> Nx.to_batched_list(1)
+    targets = Nx.iota({10, 1}) |> Nx.to_batched_list(1)
+    model = Nixa.Tree.CARTRegressor.fit(inputs, targets)
+    yhat = Nixa.Tree.CARTRegressor.predict(model, inputs) |> Nx.concatenate() |> Nx.to_flat_list()
+    assert yhat == [0.5, 0.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+  end
+
+  defp get_play_tennis_data() do
     {inputs, targets} = [
       { [:sunny, :hot, :high, :weak], [:no] },
       { [:sunny, :hot, :high, :strong], [:no] },

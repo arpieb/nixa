@@ -17,6 +17,10 @@ defmodule Nixa.Tree.Shared do
     Enum.fetch!(targets, target_idx)[0]
   end
 
+  def get_mean_target(targets) do
+    targets |> Nx.concatenate() |> Nx.mean() |> Nx.new_axis(0)
+  end
+
   def filter_inputs_targets(inputs, targets, split_a, split_val) do
     inputs
       |> Enum.zip(targets)
@@ -71,6 +75,21 @@ defmodule Nixa.Tree.Shared do
   def calc_attr_gini_impurity(inputs, targets, split_a, split_val) do
     {_v_inputs, v_targets} = filter_inputs_targets(inputs, targets, split_a, split_val)
     calc_targets_gini_impurity(v_targets) |> Nx.multiply(Enum.count(v_targets)) |> Nx.divide(Enum.count(targets))
+  end
+
+  def calc_binning(inputs, binning_strategy) do
+    t_inputs = Nx.concatenate(inputs)
+    num_attrs = t_inputs |> Nx.shape() |> elem(1)
+    binning_strategy = if is_tuple(binning_strategy),
+      do: List.duplicate(binning_strategy, num_attrs),
+      else: binning_strategy
+
+    features = for idx <- 0..(num_attrs - 1), do: t_inputs[[0..-1, idx]]
+    binning_borders = features
+    |> Enum.zip(binning_strategy)
+    |> Enum.map(fn {values, {binner, nbins}} -> apply(Nixa.Discretizers, binner, [values, nbins]) end)
+
+    {binning_strategy, binning_borders}
   end
 
 end
