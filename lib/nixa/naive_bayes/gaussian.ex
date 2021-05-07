@@ -27,11 +27,8 @@ defmodule Nixa.NaiveBayes.Gaussian do
       |> Enum.map(fn c -> Task.async(fn -> calc_feature_probs(c, inputs, targets) end) end)
       |> Task.await_many(:infinity)
       |> Enum.unzip()
-    # {means, stds} = for c <- 0..(num_classes - 1) do
-    #   calc_feature_probs(c, inputs, targets)
-    # end |> Enum.unzip()
 
-      %__MODULE__{
+    %__MODULE__{
       class_probs: class_probs,
       means: means,
       stds: stds,
