@@ -44,5 +44,27 @@ defmodule Nixa.FeatureExtraction.Text do
     |> Nx.new_axis(0)
   end
 
+  @doc """
+  Binarize list of strings using vocabulary
+  """
+  def binarize_list(inputs, vocab) when is_list(inputs) do
+    inputs
+    |> Enum.map(fn s -> binarize_string(s, vocab) end)
+    |> Nx.concatenate()
+  end
+
+  @doc """
+  Binarize a string using vocabulary
+  """
+  def binarize_string(s, vocab) when is_binary(s) do
+    counts = s
+      |> String.downcase()
+      |> String.split()
+      |> Enum.reduce(%{}, fn w, acc -> Map.put(acc, w, 1) end)
+    vocab
+    |> Enum.map(fn w -> Map.get(counts, w, 0) end)
+    |> Nx.tensor()
+    |> Nx.new_axis(0)
+  end
 
 end

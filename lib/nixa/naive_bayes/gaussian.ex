@@ -18,7 +18,7 @@ defmodule Nixa.NaiveBayes.Gaussian do
   """
   def fit(inputs, targets, opts \\ []) do
     class_probability = Keyword.get(opts, :class_probability, :weighted)
-    alpha = Keyword.get(opts, :alpha, 1.0e-6)
+    alpha = Keyword.get(opts, :alpha, 1.0)
     class_probs = if is_list(class_probability),
       do: class_probability,
       else: calc_class_prob(targets, class_probability, alpha)

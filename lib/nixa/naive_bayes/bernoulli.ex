@@ -1,11 +1,11 @@
-defmodule Nixa.NaiveBayes.Categorical do
+defmodule Nixa.NaiveBayes.Bernoulli do
   @moduledoc """
-  Implements a categorical Naive Bayes classifier
+  Implements the Bernoulli Naive Bayes algorithm
   """
 
-  import Nixa.Shared
-  import Nixa.Stats
+  import Nx.Defn
   import Nixa.NaiveBayes.Shared
+  import Nixa.Stats
 
   defstruct [
     class_probs: nil,
@@ -24,8 +24,8 @@ defmodule Nixa.NaiveBayes.Categorical do
       else: calc_class_prob(targets, class_probability, alpha)
     num_classes = class_probs |> Nx.size() |> Nx.to_scalar()
     feature_probs = 0..(num_classes - 1)
-      |> Enum.map(fn c -> Task.async(fn -> calc_feature_probs(c, inputs, targets) end) end)
-      |> Task.await_many(:infinity)
+    |> Enum.map(fn c -> Task.async(fn -> calc_feature_probs(c, inputs, targets) end) end)
+    |> Task.await_many(:infinity)
 
     %__MODULE__{
       class_probs: class_probs,
@@ -48,17 +48,14 @@ defmodule Nixa.NaiveBayes.Categorical do
     model.class_probs
     |> Nx.to_flat_list()
     |> Enum.zip(model.feature_probs)
-    |> Enum.map(fn {ck, px} -> calc_input_probs(input, ck, px, model.alpha) end)
-    |> Nx.tensor()
+    |> Enum.map(fn {ck, px} -> calc_input_probs(input, ck, px) end)
+    |> Nx.stack()
     |> Nx.argmax()
     |> Nx.new_axis(0)
   end
 
-  defp calc_input_probs(inputs, ck, px, alpha) do
-    num_f = inputs[0] |> Nx.size()
-    for f <- 0..(num_f - 1), reduce: ck do
-      p -> p * Map.get(px, {f, Nx.to_scalar(inputs[0][f])}, alpha)
-    end
+  defnp calc_input_probs(input, ck, px) do
+    ((px * input + (1 - px) * (1 - input)) * ck) |> Nx.product()
   end
 
   defp calc_feature_probs(c, inputs, targets) do
@@ -69,15 +66,12 @@ defmodule Nixa.NaiveBayes.Categorical do
     |> elem(0)
     |> Nx.concatenate()
 
-    num_f = t_inputs[0] |> Nx.size()
-    for f <- 0..(num_f - 1), reduce: %{} do
-      acc -> f_vals = t_inputs[[0..-1, f]]
-        vals = f_vals |> Nx.to_flat_list() |> MapSet.new() |> MapSet.to_list()
-        px = f_vals |> frequencies() |> Nx.add(1) |> prob_dist() |> Nx.to_flat_list()
-        vals
-        |> Enum.zip(px)
-        |> Enum.reduce(acc, fn {val, p}, a -> Map.put(a, {f, val}, p) end)
-    end
+    calc_feature_probs_n(t_inputs)
+  end
+
+  defnp calc_feature_probs_n(t_inputs) do
+    f_counts = Nx.sum(t_inputs, axes: [0])
+    prob_dist(f_counts)
   end
 
 end

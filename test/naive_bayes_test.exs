@@ -8,8 +8,21 @@ defmodule NixaTest.NaiveBayes do
     # Test using well-documented toy dataset for decision trees, "PlayTennis"
     {x, y} = get_play_tennis_data()
     model = Nixa.NaiveBayes.Categorical.fit(x, y)
-    
+
     yhat = Nixa.NaiveBayes.Categorical.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
+    ytrue = y |> Nx.concatenate() |> Nx.squeeze()
+
+    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
+    acc = num_correct / Enum.count(y)
+    assert acc >= 0.75
+  end
+
+  test "Multinomial" do
+    # Test using contrived dataset
+    {x, y} = get_vectorized_data()
+    model = Nixa.NaiveBayes.Multinomial.fit(x, y)
+
+    yhat = Nixa.NaiveBayes.Multinomial.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
     num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
@@ -17,12 +30,12 @@ defmodule NixaTest.NaiveBayes do
     assert acc >= 0.8
   end
 
-  test "Multinomial" do
+  test "Bernoulli" do
     # Test using contrived dataset
-    {x, y} = get_bow_data()
-    model = Nixa.NaiveBayes.Multinomial.fit(x, y)
+    {x, y} = get_binarized_data()
+    model = Nixa.NaiveBayes.Bernoulli.fit(x, y)
 
-    yhat = Nixa.NaiveBayes.Multinomial.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
+    yhat = Nixa.NaiveBayes.Bernoulli.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
     num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
@@ -40,6 +53,8 @@ defmodule NixaTest.NaiveBayes do
     yhat = Nixa.NaiveBayes.Gaussian.predict(model, x_test) |> Nx.concatenate() |> Nx.squeeze() |> Nx.to_scalar()
     assert yhat == 3
   end
+
+  ### Internal functions
 
   defp get_play_tennis_data() do
     {inputs, targets} = [
@@ -68,7 +83,7 @@ defmodule NixaTest.NaiveBayes do
     {x, y}
   end
 
-  defp get_bow_data() do
+  defp get_vectorized_data() do
     {inputs, targets} = [
       { "That food was good", [:pos] },
       { "That drink was great", [:pos] },
@@ -86,6 +101,25 @@ defmodule NixaTest.NaiveBayes do
     y = Nixa.Shared.categorical_to_numeric(targets, target_c)
       |> Nx.tensor()
       |> Nx.to_batched_list(1)
+
+    {x, y}
+  end
+
+  defp get_binarized_data() do
+    {inputs, targets} = [
+      { "That food was good", [:pos] },
+      { "That drink was great", [:pos] },
+      { "That movie was awesome", [:pos] },
+      { "That drink was bad", [:neg] },
+      { "That food was awful", [:neg] },
+      { "That store sucked", [:neg] },
+    ] |> Enum.unzip()
+
+    vocab = extract_vocabulary(inputs)
+    x = binarize_list(inputs, vocab) |> Nx.to_batched_list(1)
+
+    target_c = Nixa.Shared.get_categories(targets)
+    y = Nixa.Shared.categorical_to_numeric(targets, target_c) |> Nx.tensor() |> Nx.to_batched_list(1)
 
     {x, y}
   end
