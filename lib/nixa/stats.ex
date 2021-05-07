@@ -34,4 +34,15 @@ defmodule Nixa.Stats do
     t / Nx.sum(t)
   end
 
+  @doc """
+  Calculate the standard deviation of the provided tensor
+  """
+  def std(t, opts \\ []) do
+    axes = Keyword.get(opts, :axes, nil)
+    n = Nx.shape(t) |> elem(0)
+    if axes == nil,
+      do: Nx.mean(t) |> Nx.subtract(t) |> Nx.power(2) |> Nx.sum() |> Nx.divide(n) |> Nx.sqrt(),
+      else: Nx.mean(t, axes: axes) |> Nx.subtract(t) |> Nx.power(2) |> Nx.sum(axes: axes) |> Nx.divide(n) |> Nx.sqrt()
+  end
+
 end
