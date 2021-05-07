@@ -5,6 +5,7 @@ defmodule Nixa.NaiveBayes.Categorical do
 
   import Nixa.Shared
   import Nixa.Stats
+  import Nixa.NaiveBayes.Shared
 
   defstruct [
     class_probs: nil,
@@ -12,6 +13,9 @@ defmodule Nixa.NaiveBayes.Categorical do
     alpha: nil
   ]
 
+  @doc """
+  Train a model using the provided inputs and targets
+  """
   def fit(inputs, targets, opts \\ []) do
     class_probability = Keyword.get(opts, :class_probability, :weighted)
     alpha = Keyword.get(opts, :alpha, 1.0e-6)
@@ -19,9 +23,10 @@ defmodule Nixa.NaiveBayes.Categorical do
       do: class_probability,
       else: calc_class_prob(targets, class_probability, alpha)
     num_classes = class_probs |> Nx.size() |> Nx.to_scalar()
-    feature_probs = for c <- 0..(num_classes - 1) do
-      calc_feature_probs(c, inputs, targets)
-    end
+    feature_probs = 0..(num_classes - 1)
+      |> Enum.map(fn c -> Task.async(fn -> calc_feature_probs(c, inputs, targets) end) end)
+      |> Task.await_many(:infinity)
+
     %__MODULE__{
       class_probs: class_probs,
       feature_probs: feature_probs,
@@ -29,6 +34,9 @@ defmodule Nixa.NaiveBayes.Categorical do
     }
   end
 
+  @doc """
+  Predict classes using a trained model
+  """
   def predict(%__MODULE__{} = model, inputs) do
     inputs
     |> Enum.map(fn input -> predict_one(model, input) end)
@@ -70,15 +78,6 @@ defmodule Nixa.NaiveBayes.Categorical do
         |> Enum.zip(px)
         |> Enum.reduce(acc, fn {val, p}, a -> Map.put(a, {f, val}, p) end)
     end
-  end
-
-  defp calc_class_prob(targets, :weighted, alpha) do
-    targets |> Nx.concatenate() |> frequencies() |> Nx.add(alpha) |> prob_dist()
-  end
-
-  defp calc_class_prob(targets, :equal, _alpha) do
-    num_classes = targets |> Nx.concatenate() |> Nx.reduce_max() |> Nx.to_scalar()
-    Nx.broadcast(1.0 / num_classes, {num_classes})
   end
 
 end
