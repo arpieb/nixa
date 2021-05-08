@@ -125,4 +125,6 @@ defmodule Nixa.Shared do
   def safe_to_scalar(%Nx.Tensor{} = t), do: Nx.to_scalar(t)
   def safe_to_scalar(t), do: t
 
+  def axis_size(%Nx.Tensor{} = t, axis), do: Nx.shape(t) |> elem(axis)
+
 end

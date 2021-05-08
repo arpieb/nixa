@@ -9,6 +9,10 @@ defmodule Nixa.Distance do
     Nx.sqrt(Nx.sum(Nx.power(x - y, 2)))
   end
 
+  defn sqeuclidean(x, y) do
+    Nx.sum(Nx.power(x - y, 2))
+  end
+
   defn manhattan(x, y) do
     Nx.sum(Nx.abs(x - y))
   end
