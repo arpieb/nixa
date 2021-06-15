@@ -84,8 +84,7 @@ defmodule Nixa.Tree.CARTRegressor do
 
       split_vals = get_split_vals(inputs, split_a)
       children = split_vals
-        |> Enum.map(fn val -> Task.async(fn -> {Nx.to_scalar(val[0]), create_child(inputs, targets, split_a, val, rem_attrs, opts)} end) end)
-        |> Task.await_many(:infinity)
+        |> Enum.map(fn val -> {Nx.to_scalar(val[0]), create_child(inputs, targets, split_a, val, rem_attrs, opts)} end)
         |> Map.new()
 
       %Nixa.Tree.Node{

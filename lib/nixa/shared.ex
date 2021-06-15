@@ -107,8 +107,8 @@ defmodule Nixa.Shared do
     |> Nx.to_flat_list()
     |> MapSet.new()
     |> MapSet.to_list()
-    |> Nx.tensor()
-    |> Nx.map(fn c -> Nx.equal(t, c) |> Nx.sum() end)
+    |> Enum.map(fn c -> Nx.equal(t, c) |> Nx.sum() end)
+    |> Nx.stack()
   end
 
   @doc """

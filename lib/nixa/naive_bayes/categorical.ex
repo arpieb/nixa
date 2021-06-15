@@ -71,7 +71,7 @@ defmodule Nixa.NaiveBayes.Categorical do
 
     num_f = t_inputs[0] |> Nx.size()
     for f <- 0..(num_f - 1), reduce: %{} do
-      acc -> f_vals = t_inputs[[0..-1, f]]
+      acc -> f_vals = t_inputs[[0..-1//1, f]]
         vals = f_vals |> Nx.to_flat_list() |> MapSet.new() |> MapSet.to_list()
         px = f_vals |> frequencies() |> Nx.add(1) |> prob_dist() |> Nx.to_flat_list()
         vals

@@ -8,7 +8,7 @@ defmodule Nixa.Tree.Shared do
 
   def get_split_vals(inputs, split_a) do
     inputs
-      |> Enum.map(fn t -> t[[0..-1, split_a]] end)
+      |> Enum.map(fn t -> t[[0..-1//1, split_a]] end)
       |> MapSet.new()
       |> MapSet.to_list()
   end
@@ -67,7 +67,7 @@ defmodule Nixa.Tree.Shared do
       do: List.duplicate(binning_strategy, num_attrs),
       else: binning_strategy
 
-    features = for idx <- 0..(num_attrs - 1), do: t_inputs[[0..-1, idx]]
+    features = for idx <- 0..(num_attrs - 1), do: t_inputs[[0..-1//1, idx]]
     binning_borders = features
     |> Enum.zip(binning_strategy)
     |> Enum.map(fn {values, {binner, nbins}} -> apply(Nixa.Discretizers, binner, [values, nbins]) end)
