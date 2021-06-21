@@ -37,7 +37,7 @@ defmodule Nixa.Neighbors.KDTree do
       """
       def to_string(node), do: node_to_string(node, "root")
 
-      defp node_to_string(node, label \\ "node", level \\ 0) do
+      defp node_to_string(node, label, level \\ 0) do
         prefix = List.duplicate(" ", level) |> Enum.join()
         out = prefix <> label
 
@@ -60,7 +60,7 @@ defmodule Nixa.Neighbors.KDTree do
   end
 
   @doc """
-  Create new BallTree from provided inputs using provided options
+  Create new KDTree from provided inputs using provided options
   """
   def create(inputs, opts \\ []) when is_list(inputs) do
     metric_fn = Keyword.get(opts, :metric, :sqeuclidean)
@@ -85,10 +85,11 @@ defmodule Nixa.Neighbors.KDTree do
 
   ### Internal functions
 
-  defp query_one(tree, input, opts) do
+  defp query_one(tree, input, _opts) do
     # TODO implement k-nearest logic
-    k = Keyword.get(opts, :k, 1)
+    # k = Keyword.get(opts, :k, 1)
     traverse_tree(tree.root, tree.num_dims, input, 0)
+    |> Nx.new_axis(0)
   end
 
   defp traverse_tree(node, num_dims, input, depth) do
@@ -112,13 +113,10 @@ defmodule Nixa.Neighbors.KDTree do
     median = div(num_inputs, 2)
     location = Enum.at(inputs, median) |> Nx.squeeze()
     {left, [_ | right]} = Enum.split(inputs, median)
-    left_task = Task.async(fn -> kdtree(left, num_dims, depth + 1) end)
-    right_task = Task.async(fn -> kdtree(right, num_dims, depth + 1) end)
-    [left_child, right_child] = Task.await_many([left_task, right_task])
     %Node{
       location: location,
-      left: left_child, #kdtree(left, k, depth + 1),
-      right: right_child #kdtree(right, k, depth + 1),
+      left: kdtree(left, num_dims, depth + 1),
+      right: kdtree(right, num_dims, depth + 1),
     }
   end
 
