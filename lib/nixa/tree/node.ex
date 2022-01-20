@@ -32,7 +32,7 @@ defmodule Nixa.Tree.Node do
 
       out = out <> if split_val != nil, do: ", split_val: #{split_val}", else: ""
       out = out <> if node.attr != nil, do: ", split_attr: #{node.attr}", else: ""
-      out = out <> if node.target != nil, do: ", default_target: #{node.target[0] |> Nx.to_scalar()}", else: ""
+      out = out <> if node.target != nil, do: ", default_target: #{node.target[0] |> Nx.to_number()}", else: ""
 
       out = out <> "\n"
 

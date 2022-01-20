@@ -22,7 +22,7 @@ defmodule Nixa.NaiveBayes.Bernoulli do
     class_probs = if is_list(class_probability),
       do: class_probability,
       else: calc_class_prob(targets, class_probability, alpha)
-    num_classes = class_probs |> Nx.size() |> Nx.to_scalar()
+    num_classes = class_probs |> Nx.size() |> Nx.to_number()
     feature_probs = 0..(num_classes - 1)
     |> Enum.map(fn c -> Task.async(fn -> calc_feature_probs(c, inputs, targets) end) end)
     |> Task.await_many(:infinity)
@@ -61,7 +61,7 @@ defmodule Nixa.NaiveBayes.Bernoulli do
   defp calc_feature_probs(c, inputs, targets) do
     t_inputs = inputs
     |> Enum.zip(targets)
-    |> Enum.filter(fn {_input, target} -> target |> Nx.squeeze() |> Nx.to_scalar() == c end)
+    |> Enum.filter(fn {_input, target} -> target |> Nx.squeeze() |> Nx.to_number() == c end)
     |> Enum.unzip()
     |> elem(0)
     |> Nx.concatenate()

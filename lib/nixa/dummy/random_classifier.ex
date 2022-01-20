@@ -12,7 +12,7 @@ defmodule Nixa.Dummy.RandomClassifier do
   """
   def fit(_inputs, targets, _opts \\ []) do
     %__MODULE__{
-      num_classes: targets |> Nx.concatenate() |> Nx.reduce_max() |> Nx.to_scalar(),
+      num_classes: targets |> Nx.concatenate() |> Nx.reduce_max() |> Nx.to_number(),
     }
   end
 

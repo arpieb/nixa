@@ -12,7 +12,7 @@ defmodule Nixa.Dummy.ZeroRRegressor do
   """
   def fit(_inputs, targets, _opts \\ []) do
     %__MODULE__{
-      best_target: targets |> Nx.concatenate() |> Nx.mean() |> Nx.to_scalar()
+      best_target: targets |> Nx.concatenate() |> Nx.mean() |> Nx.to_number()
     }
   end
 

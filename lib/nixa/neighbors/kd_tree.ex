@@ -122,7 +122,7 @@ defmodule Nixa.Neighbors.KDTree do
   end
 
   defp comp_tensors(a, b, comp_fn) do
-    (comp_fn.(a, b) |> Nx.to_scalar()) == 1
+    (comp_fn.(a, b) |> Nx.to_number()) == 1
   end
 
   defp calc_metric({f, args}, x, y) do
@@ -133,7 +133,7 @@ defmodule Nixa.Neighbors.KDTree do
   defp kdtree(inputs, num_dims, depth) do
     f = rem(depth, num_dims)
     num_inputs = Enum.count(inputs)
-    inputs = Enum.sort(inputs, fn a, b -> Nx.to_scalar(a[0][f]) <= Nx.to_scalar(b[0][f]) end)
+    inputs = Enum.sort(inputs, fn a, b -> Nx.to_number(a[0][f]) <= Nx.to_number(b[0][f]) end)
     median = div(num_inputs, 2)
     location = Enum.at(inputs, median) |> Nx.squeeze()
     {left, [_ | right]} = Enum.split(inputs, median)

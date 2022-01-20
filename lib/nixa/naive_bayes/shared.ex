@@ -18,7 +18,7 @@ defmodule Nixa.NaiveBayes.Shared do
     num_classes = targets
       |> Nx.concatenate()
       |> Nx.reduce_max()
-      |> Nx.to_scalar()
+      |> Nx.to_number()
     Nx.broadcast(1.0 / num_classes, {num_classes})
   end
 

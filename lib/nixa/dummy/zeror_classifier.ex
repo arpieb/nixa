@@ -14,7 +14,7 @@ defmodule Nixa.Dummy.ZeroRClassifier do
   """
   def fit(_inputs, targets, _opts \\ []) do
     %__MODULE__{
-      best_target: get_argmax_target(targets) |> Nx.squeeze() |> Nx.to_scalar()
+      best_target: get_argmax_target(targets) |> Nx.squeeze() |> Nx.to_number()
     }
   end
 

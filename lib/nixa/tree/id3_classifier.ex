@@ -31,7 +31,7 @@ defmodule Nixa.Tree.ID3Classifier do
           node.attr == nil ->
             nil
           true ->
-            attr_val = input[0][node.attr] |> Nx.to_scalar()
+            attr_val = input[0][node.attr] |> Nx.to_number()
             child = Map.get(node.children, attr_val)
             if child == nil, do: node.target, else: traverse_tree(child, input)
         end
@@ -43,7 +43,7 @@ defmodule Nixa.Tree.ID3Classifier do
 
   defp build_tree({inputs, targets}, attrs, opts) do
     h = calc_targets_entropy(targets)
-    if Nx.to_scalar(h) == 0.0 do
+    if Nx.to_number(h) == 0.0 do
       # Base case where there is only one target value
       t = Nx.concatenate(targets)
       %Nixa.Tree.Node{target: t[0]}
@@ -54,14 +54,14 @@ defmodule Nixa.Tree.ID3Classifier do
         |> Task.await_many(:infinity)
         |> Nx.concatenate()
         |> Nx.argmax()
-        |> Nx.to_scalar()
+        |> Nx.to_number()
       split_a = Enum.fetch!(attrs, split_arg)
 
       rem_attrs = MapSet.delete(attrs, split_a)
 
       split_vals = get_split_vals(inputs, split_a)
       children = split_vals
-        |> Enum.map(fn val -> {Nx.to_scalar(val[0]), create_child(inputs, targets, split_a, val, rem_attrs, opts)} end)
+        |> Enum.map(fn val -> {Nx.to_number(val[0]), create_child(inputs, targets, split_a, val, rem_attrs, opts)} end)
         |> Map.new()
 
       %Nixa.Tree.Node{

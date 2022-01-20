@@ -14,8 +14,8 @@ defmodule Nixa.Dummy.RandomRegressor do
   def fit(_inputs, targets, _opts \\ []) do
     t_targets = targets |> Nx.concatenate()
     %__MODULE__{
-      min_target: t_targets |> Nx.reduce_min() |> Nx.to_scalar(),
-      max_target: t_targets |> Nx.reduce_max() |> Nx.to_scalar(),
+      min_target: t_targets |> Nx.reduce_min() |> Nx.to_number(),
+      max_target: t_targets |> Nx.reduce_max() |> Nx.to_number(),
     }
   end
 

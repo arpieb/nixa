@@ -22,7 +22,7 @@ defmodule Nixa.NaiveBayes.Categorical do
     class_probs = if is_list(class_probability),
       do: class_probability,
       else: calc_class_prob(targets, class_probability, alpha)
-    num_classes = class_probs |> Nx.size() |> Nx.to_scalar()
+    num_classes = class_probs |> Nx.size() |> Nx.to_number()
     feature_probs = 0..(num_classes - 1)
       |> Enum.map(fn c -> Task.async(fn -> calc_feature_probs(c, inputs, targets) end) end)
       |> Task.await_many(:infinity)
@@ -57,14 +57,14 @@ defmodule Nixa.NaiveBayes.Categorical do
   defp calc_input_probs(inputs, ck, px, alpha) do
     num_f = inputs[0] |> Nx.size()
     for f <- 0..(num_f - 1), reduce: ck do
-      p -> p * Map.get(px, {f, Nx.to_scalar(inputs[0][f])}, alpha)
+      p -> p * Map.get(px, {f, Nx.to_number(inputs[0][f])}, alpha)
     end
   end
 
   defp calc_feature_probs(c, inputs, targets) do
     t_inputs = inputs
     |> Enum.zip(targets)
-    |> Enum.filter(fn {_input, target} -> target |> Nx.squeeze() |> Nx.to_scalar() == c end)
+    |> Enum.filter(fn {_input, target} -> target |> Nx.squeeze() |> Nx.to_number() == c end)
     |> Enum.unzip()
     |> elem(0)
     |> Nx.concatenate()

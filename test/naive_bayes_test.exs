@@ -12,7 +12,7 @@ defmodule NixaTest.NaiveBayes do
     yhat = Nixa.NaiveBayes.Categorical.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
-    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
+    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_number()
     acc = num_correct / Enum.count(y)
     assert acc >= 0.75
   end
@@ -25,7 +25,7 @@ defmodule NixaTest.NaiveBayes do
     yhat = Nixa.NaiveBayes.Multinomial.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
-    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
+    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_number()
     acc = num_correct / Enum.count(y)
     assert acc >= 0.8
   end
@@ -38,7 +38,7 @@ defmodule NixaTest.NaiveBayes do
     yhat = Nixa.NaiveBayes.Bernoulli.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
-    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
+    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_number()
     acc = num_correct / Enum.count(y)
     assert acc >= 0.8
   end
@@ -50,7 +50,7 @@ defmodule NixaTest.NaiveBayes do
     model = Nixa.NaiveBayes.Gaussian.fit(x, y)
 
     x_test = Nx.tensor([[-2, 5]]) |> Nx.to_batched_list(1)
-    yhat = Nixa.NaiveBayes.Gaussian.predict(model, x_test) |> Nx.concatenate() |> Nx.squeeze() |> Nx.to_scalar()
+    yhat = Nixa.NaiveBayes.Gaussian.predict(model, x_test) |> Nx.concatenate() |> Nx.squeeze() |> Nx.to_number()
     assert yhat == 3
   end
 

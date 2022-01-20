@@ -50,11 +50,11 @@ defmodule NixaTest.Shared do
     assert Nixa.Shared.safe_to_tensor(vals) == t
   end
 
-  test "safe_to_scalar" do
+  test "safe_to_number" do
     val = 1
     t = Nx.tensor(val)
-    assert Nixa.Shared.safe_to_scalar(t) == val
-    assert Nixa.Shared.safe_to_scalar(val) == val
+    assert Nixa.Shared.safe_to_number(t) == val
+    assert Nixa.Shared.safe_to_number(val) == val
   end
 
   defp get_play_tennis_data() do

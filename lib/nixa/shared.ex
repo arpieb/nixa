@@ -62,7 +62,7 @@ defmodule Nixa.Shared do
   def linspace(start, stop, num, opts \\ []) do
     start = safe_to_tensor(start)
     stop = safe_to_tensor(stop)
-    num = safe_to_scalar(num)
+    num = safe_to_number(num)
     endpoint = Keyword.get(opts, :endpoint, true)
     step = if endpoint,
       do: calc_linspace_step_size(start, stop, Nx.subtract(num, 1)),
@@ -84,7 +84,7 @@ defmodule Nixa.Shared do
   """
   def get_argmax_target(targets) do
     t_targets = targets |> Nx.concatenate()
-    argmax = t_targets |> frequencies() |> Nx.argmax() |> Nx.to_scalar()
+    argmax = t_targets |> frequencies() |> Nx.argmax() |> Nx.to_number()
     t_targets
     |> Nx.to_flat_list()
     |> MapSet.new()
@@ -120,10 +120,10 @@ defmodule Nixa.Shared do
   def safe_to_tensor(t), do: Nx.tensor(t)
 
   @doc """
-  Provide Nx.to_scalar/1 functionality that is type-aware and can be blindly used on Nx.Tensor and scalars
+  Provide Nx.to_number/1 functionality that is type-aware and can be blindly used on Nx.Tensor and scalars
   """
-  def safe_to_scalar(%Nx.Tensor{} = t), do: Nx.to_scalar(t)
-  def safe_to_scalar(t), do: t
+  def safe_to_number(%Nx.Tensor{} = t), do: Nx.to_number(t)
+  def safe_to_number(t), do: t
 
   def axis_size(%Nx.Tensor{} = t, axis), do: Nx.shape(t) |> elem(axis)
 

@@ -11,7 +11,7 @@ defmodule NixaTest.Neighbors do
     outputs = Nixa.Neighbors.KDTree.query(tree, inputs)
     num_matches = Nx.equal(Nx.concatenate(inputs), Nx.concatenate(outputs))
       |> Nx.sum()
-      |> Nx.to_scalar()
+      |> Nx.to_number()
     assert(num_matches == num_f * num_samples)
   end
 end

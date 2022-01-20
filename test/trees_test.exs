@@ -9,7 +9,7 @@ defmodule NixaTest.Tree do
     yhat = Nixa.Tree.ID3Classifier.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
-    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
+    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_number()
     assert num_correct == Enum.count(y)
   end
 
@@ -20,7 +20,7 @@ defmodule NixaTest.Tree do
     yhat = Nixa.Tree.CARTClassifier.predict(model, x) |> Nx.concatenate() |> Nx.squeeze()
     ytrue = y |> Nx.concatenate() |> Nx.squeeze()
 
-    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_scalar()
+    num_correct = Nx.equal(yhat, ytrue) |> Nx.sum() |> Nx.to_number()
     assert num_correct == Enum.count(y)
   end
 
